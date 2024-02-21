@@ -1,5 +1,5 @@
-import React from 'react'
-import { FilterValuesType } from './App'
+import React, { ChangeEvent } from 'react'
+import { FilterValuesType, TasksStateType } from './App'
 import { v1 } from 'uuid'
 import { AddItemForm } from './AddItemForm'
 import { EditableSpan } from './EditableSpan'
@@ -7,6 +7,10 @@ import { title } from 'process'
 import { Button, Checkbox } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
+import { useDispatch } from 'react-redux'
+import { AppRootState } from './state/store'
+import { useSelector } from 'react-redux'
+import { addTaskAC, changeTaskStatusAC, changeTaskTitleAC, removeTaskAC } from './state/tasks-reducer'
 
 export type TaskType = {
     id: string,
@@ -17,29 +21,40 @@ export type TaskType = {
 type PropsType = {
     id: string
     title: string,
-    tasks: TaskType[],
-    deleteTask: (id: string, todolistId: string) => void
     changeFilter: (todolistId: string, filter: FilterValuesType) => void
-    addTask: (taskTitle: string, todolistId: string) => void
-    changeTask: (id: string, todolistId: string) => void
     filter: FilterValuesType
     removeTodolist: (todolistId: string) => void
-    changeTaskTitle: (taskId: string, newTitle: string, todolistId: string) => void
     changeTodolistTitle: (todolistId: string, newTitle: string) => void
 }
 
 function Todolist(props: PropsType) {
 
-    const addTask = (title: string) => {
-        props.addTask(title, props.id)
-    }
+    const dispatch = useDispatch();
+    const tasks = useSelector<AppRootState, TaskType[]>(state => state.tasks[props.id])
 
+
+    const changeTaskStatus = (id: string, isDone: boolean, todolistId: string) => {
+
+    }
+    const changeTaskTitle = (taskId: string, newTitle: string, todolistId: string) => {
+        dispatch(changeTaskTitleAC(taskId, newTitle, todolistId))
+    }
     const removeTodolist = () => {
         props.removeTodolist(props.id)
     }
 
     const changeTodolistTitle = (newTitle: string) => {
         props.changeTodolistTitle(props.id, newTitle)
+    }
+
+    let tasksForTodolist = tasks
+
+    if (props.filter === 'active') {
+        tasksForTodolist = tasksForTodolist.filter(task => task.isDone === false)
+    }
+
+    if (props.filter === 'completed') {
+        tasksForTodolist = tasksForTodolist.filter(task => task.isDone === true)
     }
 
     return (
@@ -49,17 +64,21 @@ function Todolist(props: PropsType) {
                     <DeleteIcon />
                 </IconButton>
             </h3>
-            <AddItemForm addItem={addTask} />
+            <AddItemForm addItem={(title) => { dispatch(addTaskAC(props.id, title)) }} />
             <div>
-                {props.tasks.map((task) => {
-                    const onChangeTitle = (newTitle: string) => {
-                        props.changeTaskTitle(task.id, newTitle, props.id)
+                {tasksForTodolist.map((task) => {
+                    const onChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+                        const newIsDoneValue = e.currentTarget.checked;
+                        dispatch(changeTaskStatusAC(task.id, newIsDoneValue, props.id))
+                    }
+                    const onTitleChangeHandler = (newTitle: string) => {
+                        dispatch(changeTaskTitleAC(task.id, newTitle, props.id))
                     }
 
                     return <div key={task.id} className={task.isDone ? 'isCompleted' : ''}>
-                        <Checkbox checked={task.isDone} onChange={() => props.changeTask(task.id, props.id)} />
-                        <EditableSpan title={task.title} onChangeTitle={(onChangeTitle)} />
-                        <IconButton onClick={() => { props.deleteTask(task.id, props.id) }}>
+                        <Checkbox checked={task.isDone} onChange={onChangeHandler} />
+                        <EditableSpan title={task.title} onChangeTitle={onTitleChangeHandler} />
+                        <IconButton onClick={() => dispatch(removeTaskAC(props.id, task.id))}>
                             <DeleteIcon />
                         </IconButton>
                     </div>

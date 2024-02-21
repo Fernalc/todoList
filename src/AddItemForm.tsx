@@ -31,7 +31,7 @@ export const AddItemForm = (props: AddItemFormPropsType) => {
     return <div>
         <TextField
             variant='standard'
-            label="type value"
+            label="title"
             value={taskTitle}
             onChange={e => setTaskTitle(e.currentTarget.value)}
             onKeyDown={onKeyPressHandler}
